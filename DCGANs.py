@@ -1,3 +1,4 @@
+## Import Libraries ans Packages
 import torch
 import torchvision
 import pandas as pd
@@ -15,6 +16,7 @@ batch_size = 128
 image_size = (128,128)
 stats = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
 
+### Import and Load the Dataset
 transform_dataset = transforms.Compose([transforms.Resize(image_size), transforms.ToTensor(), transforms.Normalize(*stats)])
 train_dataset = torchvision.datasets.ImageFolder(root='/Users/Sachith/dataset/Arts', transform=transform_dataset)
 train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True)
@@ -29,7 +31,7 @@ def show_arts(arts, max=16):
     ax.set_xticks([]); ax.set_yticks([])
     ax.imshow(make_grid(denorm(arts.detach()[:max]), nrow=3).permute(1, 2, 0))
 
-def show_sample(data_load, max=16):
+def show_sample(data_load, max=9):
     for arts, _ in data_load:
         show_arts(arts, max)
         break
@@ -128,7 +130,7 @@ generator = nn.Sequential(
 generator = to_device(generator, device)
 
 def discriminator_train(real_arts, optimizer_discriminator):
-    optimizer_discriminator.zer0_grad() ## Clear the gradients
+    optimizer_discriminator.zero_grad() ## Clear the gradients
     
     ## Input real Arts
     real_predictions = discriminator(real_arts)
@@ -168,7 +170,66 @@ def generator_train(optimizer_generator):
     return loss.item()
 
 ## Define a function to save generated Arts
-print("Demo Demo")
+from torchvision.utils import save_image
+import os
+
+dir = '/Users/Sachith/dataset/Generated Arts'
+os.makedirs(dir, exist_ok=True)
+
+def save_arts(index, noise_tensors, show=True):
+    fake_arts = generator(noise_tensors)
+    fake_artName = 'generated-art-{0:0=4d}.png'.format(index)
+    save_image(denorm(fake_arts), os.path.join(dir, fake_artName), nrow=3)
+    print('Saving!!', fake_artName)
+    if show:
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.set_xticks([]); ax.set_yticks([])
+        ax.imshow(make_grid(fake_arts.cpu().detach(), nrow=3).permute(1, 2, 0))
+
+### Set a fixed noise
+fixed_noise = torch.randn(9, noise_size, 1, 1, device=device)
+save_arts(0, fixed_noise)
+
+from tqdm.notebook import tqdm
+def fit(epochs, learning_rate, start_index=1):
+    torch.cuda.empty_cache()
+
+    ## Loss and Score
+    losses_discriminator = []
+    losses_generator = []
+    real_scores = []
+    fake_scores = []
+
+    ## Optimizers
+    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=learning_rate, betas=(0.5, 0.999))
+    optimizer_generator = torch.optim.Adam(generator.parameters(), lr=learning_rate, betas=(0.5, 0.999))
+
+    for epoch in range(epochs):
+        for real_arts, _ in tqdm(train_dataset):
+            ## Train the Discriminator
+            loss_discriminator, real_score, fake_score = discriminator_train(real_arts, optimizer_discriminator)
+            ## Train the Generator
+            loss_generator = generator_train(optimizer_generator)
+
+        ## Records!
+        losses_generator.append(loss_generator)
+        losses_discriminator.append(loss_discriminator)
+        real_scores.append(real_score)
+        fake_scores.append(fake_score)
+
+        # Log losses & scores (last batch)
+        print("Epoch [{}/{}], loss_g: {:.4f}, loss_d: {:.4f}, real_score: {:.4f}, fake_score: {:.4f}".format(
+            epoch+1, epochs, loss_generator, loss_discriminator, real_score, fake_score))
+
+        # Save generated images
+        save_arts(epoch + start_index, fixed_noise, show=False)
+    
+    return losses_generator, loss_discriminator, real_scores, fake_scores
+
+learning_rate = 0.001
+epochs = 250
+
+History = fit(epochs, learning_rate)
 
 
 
