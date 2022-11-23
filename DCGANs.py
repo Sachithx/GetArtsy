@@ -1,14 +1,11 @@
 ## Import Libraries ans Packages
 import torch
 import torchvision
-import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.models as models
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
 import torchvision.transforms as transforms
-from torchvision.datasets.folder import default_loader
 import matplotlib.pyplot as plt
 
 ### Define useful parameters
