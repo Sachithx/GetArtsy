@@ -215,8 +215,9 @@ def fit(epochs, learning_rate, start_index=1):
         fake_scores.append(fake_score)
 
         # Log losses & scores (last batch)
-        print("Epoch [{}/{}], loss_g: {:.4f}, loss_d: {:.4f}, real_score: {:.4f}, fake_score: {:.4f}".format(
-            epoch+1, epochs, loss_generator, loss_discriminator, real_score, fake_score))
+        print("Epoch [{}/{}], Generator Loss: {:.4f}, Discriminator Loss: {:.4f}, Real Score: {:.4f}, Fake Score: {:.4f}".format(
+            epoch+1, epochs, loss_generator, loss_discriminator, real_score, fake_score
+            ))
 
         # Save generated images
         save_arts(epoch + start_index, fixed_noise, show=False)
