@@ -231,6 +231,8 @@ epochs = 250
 
 History = fit(epochs, learning_rate)
 
+print("END!")
+
 
 
 
