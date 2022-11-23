@@ -168,7 +168,7 @@ def generator_train(optimizer_generator):
     return loss.item()
 
 ## Define a function to save generated Arts
-print("Demo")
+print("Demo Demo")
 
 
 
