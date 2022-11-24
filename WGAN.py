@@ -41,3 +41,5 @@ class Generator(nn.Module):
     def forward(self, noise):
         noise = noise.view(noise.size(0), noise.size(1), 1, 1)
         return self.gen(noise)
+    
+    print("Demo")
