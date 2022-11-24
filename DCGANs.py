@@ -23,8 +23,8 @@ def denorm(image_tensors):
     return image_tensors * stats[1][0] + stats[0][0]
 
 ### Show Images
-def show_arts(arts, max=16):
-    fig, ax = plt.subplots(figsize=(10,10))
+def show_arts(arts, max=9):
+    fig, ax = plt.subplots(figsize=(8,8))
     ax.set_xticks([]); ax.set_yticks([])
     ax.imshow(make_grid(denorm(arts.detach()[:max]), nrow=3).permute(1, 2, 0))
 
@@ -229,10 +229,14 @@ epochs = 250
 
 History = fit(epochs, learning_rate)
 
+### Plot the figures
+losses_generator, losses_discriminator, real_scores, fake_scores = History
+
+plt.plot(losses_discriminator, '-')
+plt.plot(losses_generator, '-')
+plt.xlabel('epoch')
+plt.ylabel('loss')
+plt.legend(['Discriminator Loss', 'Generator Loss'])
+plt.title('Losses')
+
 print("END!")
-
-
-
-
-
-
