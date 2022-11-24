@@ -153,3 +153,4 @@ def make_grad_hook():
             grads.append(m.weight.grad)
     return grads, grad_hook
 
+print("Demo")
