@@ -99,3 +99,57 @@ data = torchvision.datasets.ImageFolder(root=path,
 dataloader = DataLoader(data, batch_size, shuffle=True, num_workers=3, pin_memory=True)
 print(len(data))
 
+gen = Generator(z_dim).to(device)
+gen_opt = torch.optim.Adam(gen.parameters(), lr=lr, betas=(beta_1, beta_2))
+crit = Critic().to(device) 
+crit_opt = torch.optim.Adam(crit.parameters(), lr=lr, betas=(beta_1, beta_2))
+
+def weights_init(m):
+    if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+        torch.nn.init.normal_(m.weight, 0.0, 0.02)
+    if isinstance(m, nn.BatchNorm2d):
+        torch.nn.init.normal_(m.weight, 0.0, 0.02)
+        torch.nn.init.constant_(m.bias, 0)
+gen = gen.apply(weights_init)
+crit = crit.apply(weights_init)
+
+def get_gradient(crit, real, fake, epsilon):
+    mixed_images = real * epsilon + fake * (1 - epsilon)
+    mixed_scores = crit(mixed_images)
+    gradient = torch.autograd.grad(
+        inputs=mixed_images,
+        outputs=mixed_scores,
+        grad_outputs=torch.ones_like(mixed_scores), 
+        create_graph=True,
+        retain_graph=True,
+    )[0]
+    return gradient
+
+def gradient_penalty(gradient):
+    gradient = gradient.view(len(gradient), -1)
+    gradient_norm = gradient.norm(2, dim=1)
+    penalty = torch.mean((gradient_norm - 1)**2)
+    return penalty
+
+def get_gen_loss(crit_fake_pred):
+    gen_loss = -1. * torch.mean(crit_fake_pred)
+    return gen_loss
+
+def get_crit_loss(crit_fake_pred, crit_real_pred, gp, c_lambda):
+    crit_loss = torch.mean(crit_fake_pred) - torch.mean(crit_real_pred) + c_lambda * gp
+    return crit_loss
+
+def show_tensor_images(image_tensor, num_images=25, size=(3, 64, 64)):
+    image_tensor = (image_tensor + 1) / 2
+    image_unflat = image_tensor.detach().cpu()
+    image_grid = make_grid(image_unflat[:num_images], nrow=5)
+    plt.imshow(image_grid.permute(1, 2, 0).squeeze())
+    plt.show()
+
+def make_grad_hook():
+    grads = []
+    def grad_hook(m):
+        if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+            grads.append(m.weight.grad)
+    return grads, grad_hook
+
