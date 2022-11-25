@@ -74,7 +74,7 @@ class Critic(nn.Module):
         return crit_pred.view(len(crit_pred), -1)
 
 n_epochs = 100
-z_dim = 64
+z_dim = 128
 display_step = 50
 batch_size = 128
 lr = 0.0002
