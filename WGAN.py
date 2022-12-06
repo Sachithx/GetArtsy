@@ -46,7 +46,7 @@ class Generator(nn.Module):
         return self.gen(noise)
 
 ## Create Random Noise
-def get_noise(n_samples, z_dim, device='cpu'):
+def get_noise(n_samples, z_dim, device='cuda'):
     return torch.randn(n_samples, z_dim, device=device)
 
 ## Build the Critic (Known as the Discriminator in Traditional GANs)
@@ -155,7 +155,7 @@ def get_crit_loss(crit_fake_pred, crit_real_pred, gp, c_lambda):
 ## Define functions to Vizualise Images
 def show_tensor_images(image_tensor, num_images=25, size=(3, 64, 64)):
     image_tensor = (image_tensor + 1) / 2
-    image_unflat = image_tensor.detach().cpu()
+    image_unflat = image_tensor.detach().cuda()
     image_grid = make_grid(image_unflat[:num_images], nrow=5)
     plt.imshow(image_grid.permute(1, 2, 0).squeeze())
     plt.show()
