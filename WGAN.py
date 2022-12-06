@@ -1,3 +1,4 @@
+## Import required packaged and libraries
 import torch
 from torch import nn
 from tqdm.auto import tqdm
@@ -8,7 +9,9 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 torch.manual_seed(0)
 import torchvision
+import os
 
+## Build the Generator
 class Generator(nn.Module):
     def __init__(self, noise_dim, image_channel=3):
         super(Generator, self).__init__()
@@ -42,9 +45,11 @@ class Generator(nn.Module):
         noise = noise.view(noise.size(0), noise.size(1), 1, 1)
         return self.gen(noise)
 
+## Create Random Noise
 def get_noise(n_samples, z_dim, device='cpu'):
     return torch.randn(n_samples, z_dim, device=device)
 
+## Build the Critic (Known as the Discriminator in Traditional GANs)
 class Critic(nn.Module):
     def __init__(self, image_channel=3):
         super(Critic, self).__init__()
@@ -73,8 +78,9 @@ class Critic(nn.Module):
         crit_pred = self.disc(image)
         return crit_pred.view(len(crit_pred), -1)
 
-n_epochs = 100
-z_dim = 128
+## Define training parameters
+n_epochs = 600
+z_dim = 64
 display_step = 50
 batch_size = 128
 lr = 0.0002
@@ -82,8 +88,9 @@ beta_1 = 0.5
 beta_2 = 0.999
 c_lambda = 10
 crit_repeats = 5
-device = 'cpu'
+device = 'cuda'
 
+## Import dataset and dataloader
 image_size = (128,128)
 stats = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
 path = '/Users/Sachith/dataset/Data'
@@ -99,11 +106,13 @@ data = torchvision.datasets.ImageFolder(root=path,
 dataloader = DataLoader(data, batch_size, shuffle=True, num_workers=3, pin_memory=True)
 print(len(data))
 
+## Initialise Generator and Critic
 gen = Generator(z_dim).to(device)
 gen_opt = torch.optim.Adam(gen.parameters(), lr=lr, betas=(beta_1, beta_2))
 crit = Critic().to(device) 
 crit_opt = torch.optim.Adam(crit.parameters(), lr=lr, betas=(beta_1, beta_2))
 
+## Initialise the Weights
 def weights_init(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
         torch.nn.init.normal_(m.weight, 0.0, 0.02)
@@ -113,6 +122,7 @@ def weights_init(m):
 gen = gen.apply(weights_init)
 crit = crit.apply(weights_init)
 
+## Create gradient
 def get_gradient(crit, real, fake, epsilon):
     mixed_images = real * epsilon + fake * (1 - epsilon)
     mixed_scores = crit(mixed_images)
@@ -125,20 +135,24 @@ def get_gradient(crit, real, fake, epsilon):
     )[0]
     return gradient
 
+## Define the Gradient Penalty
 def gradient_penalty(gradient):
     gradient = gradient.view(len(gradient), -1)
     gradient_norm = gradient.norm(2, dim=1)
     penalty = torch.mean((gradient_norm - 1)**2)
     return penalty
 
+## Generator Loss
 def get_gen_loss(crit_fake_pred):
     gen_loss = -1. * torch.mean(crit_fake_pred)
     return gen_loss
 
+## Critic Loss
 def get_crit_loss(crit_fake_pred, crit_real_pred, gp, c_lambda):
     crit_loss = torch.mean(crit_fake_pred) - torch.mean(crit_real_pred) + c_lambda * gp
     return crit_loss
 
+## Define functions to Vizualise Images
 def show_tensor_images(image_tensor, num_images=25, size=(3, 64, 64)):
     image_tensor = (image_tensor + 1) / 2
     image_unflat = image_tensor.detach().cpu()
@@ -155,6 +169,7 @@ def make_grad_hook():
 
 import matplotlib.pyplot as plt
 
+## Define the Training Loop and Start Training
 cur_step = 0
 generator_losses = []
 critic_losses = []
@@ -166,7 +181,7 @@ for epoch in range(n_epochs):
 
         mean_iteration_critic_loss = 0
         for _ in range(crit_repeats):
-            ### Update critic ###
+            ### Update critic 
             crit_opt.zero_grad()
             fake_noise = get_noise(cur_batch_size, z_dim, device=device)
             fake = gen(fake_noise)
@@ -186,7 +201,7 @@ for epoch in range(n_epochs):
             crit_opt.step()
         critic_losses += [mean_iteration_critic_loss]
 
-        ### Update generator ###
+        ### Update generator 
         gen_opt.zero_grad()
         fake_noise_2 = get_noise(cur_batch_size, z_dim, device=device)
         fake_2 = gen(fake_noise_2)
@@ -201,7 +216,7 @@ for epoch in range(n_epochs):
         # Keep track of the average generator loss
         generator_losses += [gen_loss.item()]
 
-        ### Visualization code ###
+        ### Visualization code 
         if cur_step % display_step == 0 and cur_step > 0:
             gen_mean = sum(generator_losses[-display_step:]) / display_step
             crit_mean = sum(critic_losses[-display_step:]) / display_step
@@ -224,3 +239,26 @@ for epoch in range(n_epochs):
             plt.show()
 
         cur_step += 1
+
+## Save the Generator and Critic (CUDA)
+torch.save(gen,'Generator.pt')
+torch.save(crit,'Critic.pt')
+
+## Load the Generator and Generate Arts!!
+the_model = torch.load('Generator.pt')
+
+def denorm(img_tensors):
+    return img_tensors * stats[1][0] + stats[0][0]
+
+from torchvision.utils import save_image
+
+sample_dir = '/Users/Sachith/GetArtsy'
+os.makedirs(sample_dir, exist_ok=True)
+
+def generateArts(n_arts=20):
+    for art in range(n_arts):
+        fake_images = the_model(get_noise(9, z_dim, device=device))
+        fake_fname = f'WGAN_Generated_{art}.png'
+        save_image(denorm(fake_images), os.path.join(sample_dir, fake_fname), nrow=3)
+        print('Saving', fake_fname)
+        art = art + 1
