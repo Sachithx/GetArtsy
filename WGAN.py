@@ -51,7 +51,7 @@ def get_noise(n_samples, z_dim, device='cuda'):
 
 ## Build the Critic (Known as the Discriminator in Traditional GANs)
 class Critic(nn.Module):
-    def __init__(self, image_channel=3):
+    def __init__(self):
         super(Critic, self).__init__()
         self.disc = nn.Sequential(
        
