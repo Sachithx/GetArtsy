@@ -107,10 +107,19 @@ image_size = (128,128)
 stats = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
 crit_repeats = 5
 c_lambda = 10
-transform = transforms.Compose([transforms.Resize(image_size),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize(*stats)
-                                   ])
+transform = transforms.Compose([
+    transforms.Resize(image_size),
+    transforms.ColorJitter(brightness=0.7),
+    transforms.RandomRotation(degrees=45),
+    transforms.RandomHorizontalFlip(p=0.7),
+    transforms.RandomVerticalFlip(p=0.5),
+    transforms.RandomGrayscale(p=0.5),
+    transforms.RandomAutocontrast(p=0.7),
+    transforms.RandomEqualize(p=0.5),
+    transforms.RandomInvert(p=0.5),
+    transforms.ToTensor(),
+    transforms.Normalize(*stats)
+    ])
 
 data = torchvision.datasets.ImageFolder(root='/kaggle/input/cond-arts',
                                      transform=transform)
@@ -175,7 +184,7 @@ generator_losses = []
 critic_losses = []
 
 for epoch in range(n_epochs):
-    print(epoch)
+    print(f"epoch: {epoch+1}")
     # Dataloader returns the batches and the labels
     for real, labels in dataloader:
         cur_batch_size = len(real)
